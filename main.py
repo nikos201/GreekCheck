@@ -1,6 +1,7 @@
 from flask import Flask, request, Response
 from greek_accentuation.characters import strip_accents
 from greek_accentuation.accentuation import add_accent
+from urllib.parse import unquote
 
 app = Flask(__name__)
 
@@ -12,7 +13,7 @@ def add_tonos_word(word):
     vowels = [i for i, ch in enumerate(w) if ch.lower() in "αεηιουω"]
     if not vowels:
         return word
-    idx = vowels[-1]  # τονίζουμε το τελευταίο φωνήεν
+    idx = vowels[-1]  # Τονίζουμε το τελευταίο φωνήεν
     accented = add_accent(w, idx)
     if word.isupper():
         return accented.upper()
@@ -37,10 +38,14 @@ def home():
 
 @app.route("/accent")
 def accent():
-    text = request.args.get("text", "")
-    if not text:
+    raw_text = request.args.get("text", "")
+    if not raw_text:
         return Response("Δώσε παράμετρο ?text=φράση", status=400, mimetype="text/plain")
-    accented = add_tonos_phrase(text)
+    
+    # Αποκωδικοποίηση URL (σε περίπτωση που δεν είναι σωστά encoded)
+    decoded_text = unquote(raw_text)
+    
+    accented = add_tonos_phrase(decoded_text)
     return Response(accented.encode('utf-8'), mimetype="text/plain")
 
 if __name__ == "__main__":
