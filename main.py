@@ -2,23 +2,40 @@ from flask import Flask, request, Response
 from greek_accentuation.characters import strip_accents
 from greek_accentuation.accentuation import add_accent
 from urllib.parse import unquote
+import json
+import os
 
 app = Flask(__name__)
+
+# Φόρτωση λεξικού από JSON
+LEXICON_FILE = os.path.join(os.path.dirname(__file__), "lexicon.json")
+if os.path.exists(LEXICON_FILE):
+    with open(LEXICON_FILE, encoding="utf-8") as f:
+        lexicon = json.load(f)
+else:
+    lexicon = {}
 
 def add_tonos_word(word):
     """
     Προσθέτει τόνο σε μία ελληνική λέξη.
-    Αν δεν μπορεί να τονιστεί, επιστρέφει την ίδια λέξη.
+    Αν υπάρχει στο λεξικό επιστρέφει τονισμένη μορφή.
+    Αν όχι, χρησιμοποιεί greek-accentuation (fallback).
     """
+    # Έλεγχος λεξικού
+    key = word.lower()
+    if key in lexicon:
+        return lexicon[key]
+
+    # Fallback στη βιβλιοθήκη
     w = strip_accents(word)
     vowels = [i for i, ch in enumerate(w) if ch.lower() in "αεηιουω"]
     if not vowels:
         return word
-    idx = vowels[-1]  # τονίζουμε το τελευταίο φωνήεν
+    idx = vowels[-1]
     try:
         accented = add_accent(w, idx)
     except Exception:
-        return word  # Αν υπάρχει σφάλμα, επιστρέφουμε τη λέξη όπως είναι
+        return word
     if word.isupper():
         return accented.upper()
     elif word.istitle():
@@ -26,11 +43,8 @@ def add_tonos_word(word):
     return accented
 
 def add_tonos_phrase(phrase):
-    """
-    Τονίζει κάθε λέξη της φράσης
-    """
-    words = phrase.split()
-    accented_words = [add_tonos_word(word) for word in words]
+    words = phrase.strip().split()
+    accented_words = [add_tonos_word(word.strip()) for word in words]
     return ' '.join(accented_words)
 
 @app.route("/")
@@ -45,10 +59,8 @@ def accent():
     raw_text = request.args.get("text", "")
     if not raw_text:
         return Response("Δώσε παράμετρο ?text=φράση", status=400, mimetype="text/plain")
-    
-    # Αποκωδικοποίηση URL (σε περίπτωση που δεν είναι σωστά encoded)
+
     decoded_text = unquote(raw_text)
-    
     accented = add_tonos_phrase(decoded_text)
     return Response(accented.encode('utf-8'), mimetype="text/plain")
 
