@@ -2,6 +2,10 @@ from flask import Flask, request, Response
 from greek_accentuation.characters import strip_accents
 from greek_accentuation.accentuation import add_accent
 
+@app.route("/") 
+def home():
+    return "Greek Tonos API is running! Χρησιμοποίησε /accent?text=φράση"
+
 app = Flask(__name__)
 
 def add_tonos_word(word):
