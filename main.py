@@ -7,14 +7,21 @@ app = Flask(__name__)
 
 def add_tonos_word(word):
     """
-    Προσθέτει τόνο σε μία ελληνική λέξη
+    Προσθέτει τόνο σε μία ελληνική λέξη.
+    Αν δεν μπορεί, επιστρέφει την ίδια λέξη.
     """
+    from greek_accentuation.characters import strip_accents
+    from greek_accentuation.accentuation import add_accent
+
     w = strip_accents(word)
     vowels = [i for i, ch in enumerate(w) if ch.lower() in "αεηιουω"]
     if not vowels:
         return word
-    idx = vowels[-1]  # Τονίζουμε το τελευταίο φωνήεν
-    accented = add_accent(w, idx)
+    idx = vowels[-1]
+    try:
+        accented = add_accent(w, idx)
+    except Exception:
+        return word  # Αν υπάρξει σφάλμα, επιστρέφουμε τη λέξη όπως είναι
     if word.isupper():
         return accented.upper()
     elif word.istitle():
